@@ -74,6 +74,6 @@ dependencies {
     implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03'
     kapt 'androidx.hilt:hilt-compiler:1.0.0'
 
-    // Coroutine
-    implementation 'io.github.ParkSangGwon:tedpermission-coroutine:3.3.0'
+    // permission
+    implementation "com.google.accompanist:accompanist-permissions:0.24.9-beta"
 }
