@@ -2,10 +2,14 @@ package com.example.mediainfocompose.data
 
 import android.content.ContentResolver
 import android.database.MatrixCursor
-import android.provider.MediaStore
+import com.example.mediainfocompose.data.model.MediaInfo
+import com.example.mediainfocompose.data.model.MediaType.Image
+import com.example.mediainfocompose.data.model.MediaType.Video
 import com.example.mediainfocompose.fake_data.FakeMediaData
 import junit.framework.Assert.assertEquals
+import junit.framework.Assert.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -17,8 +21,10 @@ import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.robolectric.RobolectricTestRunner
+import java.util.concurrent.CountDownLatch
 
 //reference : https://github.com/Kpeved/Content-Resolver-test/blob/master/app/src/test/java/com/lolkek/contactlist/ContactsHelperTest.kt
 @RunWith(RobolectricTestRunner::class)
@@ -31,14 +37,7 @@ class AndroidMediaDataSourceTest {
 
     @Before
     fun setUp() {
-        allVideoCursor = MatrixCursor(
-            arrayOf(
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.DISPLAY_NAME,
-                MediaStore.Video.Media.DURATION,
-                MediaStore.Video.Media.SIZE
-            )
-        )
+        allVideoCursor = MatrixCursor(Video.projection)
 
         fakeAllVideoList.forEach {
             allVideoCursor.addRow(
@@ -51,14 +50,7 @@ class AndroidMediaDataSourceTest {
             )
         }
 
-        allImageCursor = MatrixCursor(
-            arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.DURATION,
-                MediaStore.Images.Media.SIZE
-            )
-        )
+        allImageCursor = MatrixCursor(Image.projection)
 
         fakeAllImageList.forEach {
             allImageCursor.addRow(
@@ -84,7 +76,7 @@ class AndroidMediaDataSourceTest {
         val expect = fakeAllImageList
         val androidMediaDataSource = createTestAndroidMediaDataSource(allImageCursor, testScheduler)
 
-        val result = androidMediaDataSource.queryAllImageList().first()
+        val result = androidMediaDataSource.queryMediaInfoList(Image).first()
 
         assertEquals(expect, result)
     }
@@ -95,9 +87,31 @@ class AndroidMediaDataSourceTest {
         val expect = fakeAllVideoList
         val androidMediaDataSource = createTestAndroidMediaDataSource(allVideoCursor, testScheduler)
 
-        val result = androidMediaDataSource.queryAllVideoList().first()
+        val result = androidMediaDataSource.queryMediaInfoList(Video).first()
 
         assertEquals(expect, result)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun queryAllMediaInfoList() = runTest {
+        val expect = fakeAllImageList + fakeAllVideoList
+        val androidMediaDataSource = createTestAndroidMediaDataSource(allVideoCursor, allImageCursor, testScheduler)
+
+        val countDownLatch = CountDownLatch(expect.size)
+        val result = arrayListOf<MediaInfo>()
+
+        androidMediaDataSource.queryAllMediaInfoList().collectLatest {
+            it.forEach { mediaInfo ->
+                result.add(mediaInfo)
+                countDownLatch.countDown()
+            }
+        }
+
+        countDownLatch.await()
+        println("expect: $expect")
+        println("result: $result")
+        assertTrue(result.containsAll(expect))
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -109,6 +123,24 @@ class AndroidMediaDataSourceTest {
             on {
                 query(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
             } doReturn mockCursor
+        }
+        val standardDispatcher = StandardTestDispatcher(testCoroutineScheduler)
+        return AndroidMediaDataSource(contentResolver, standardDispatcher)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun createTestAndroidMediaDataSource(
+        videoMockCursor: MatrixCursor,
+        imageMockCursor: MatrixCursor,
+        testCoroutineScheduler: TestCoroutineScheduler
+    ): AndroidMediaDataSource {
+        val contentResolver: ContentResolver = mock {
+            on {
+                query(eq(Video.collection), eq(Video.projection), anyOrNull(), anyOrNull(), anyOrNull())
+            } doReturn videoMockCursor
+            on {
+                query(eq(Image.collection), eq(Image.projection), anyOrNull(), anyOrNull(), anyOrNull())
+            } doReturn imageMockCursor
         }
         val standardDispatcher = StandardTestDispatcher(testCoroutineScheduler)
         return AndroidMediaDataSource(contentResolver, standardDispatcher)

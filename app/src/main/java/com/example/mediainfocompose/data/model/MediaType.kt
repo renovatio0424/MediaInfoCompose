@@ -11,7 +11,16 @@ enum class MediaType(
     Video(videoCollection, videoProjection),
     Image(imageCollection, imageProjection),
     Audio(audioCollection, audioProjection),
-    ETC(Uri.EMPTY, arrayOf())
+    ETC(Uri.EMPTY, arrayOf());
+
+    val idColumnIdx
+        get() = projection[0]
+    val displayColumnIdx
+        get() = projection[1]
+    val durationColumnIdx
+        get() = projection[2]
+    val sizeColumnIdx
+        get() = projection[3]
 }
 
 private val videoCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
