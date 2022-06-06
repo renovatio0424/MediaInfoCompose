@@ -3,4 +3,5 @@
     <string name="storage_permission_rationale">The storage is important for this app. Please grant the permission.</string>
     <string name="storage_permission_didnt_show_again">Storage permission required for this feature to be available. Please grant the permission</string>
     <string name="button_request_storage_permission">Request permission</string>
+    <string name="message_image_load_fail">image load failed</string>
 </resources>

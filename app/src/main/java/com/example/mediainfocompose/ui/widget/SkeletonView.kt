@@ -77,12 +77,13 @@ fun SkeletonItem(modifier: Modifier) {
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PermissionScreenPreview() {
+fun SkeletonPreview() {
     MediaInfoComposeTheme {
         SkeletonItem(
             Modifier
                 .fillMaxWidth()
                 .height(250.dp)
-                .padding(8.dp))
+                .padding(8.dp)
+        )
     }
 }
